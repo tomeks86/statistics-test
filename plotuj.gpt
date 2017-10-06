@@ -1,0 +1,11 @@
+set encoding iso_8859_1
+set term pdf
+set output "stat_ineff.pdf"
+
+set title "statistical inefficiency"
+set xlabel "block size t_b"
+set ylabel "t_b * {/Symbol s}_{blocked} / {/Symbol s}_{not blocked}"
+
+plot "stat_ineff_1fs.dat" w l title "step size 1fs"
+plot "stat_ineff_100fs.dat" w l title "step size 100fs"
+plot "stat_ineff_DPPC.dat" w l title "step size 5ps"

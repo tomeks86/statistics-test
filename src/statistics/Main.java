@@ -1,84 +1,59 @@
 package statistics;
 
-import java.io.*;
 import java.util.ArrayList;
 
+import static statistics.Blocking.block;
+import static statistics.FileIO.arrayListToString;
+import static statistics.FileIO.readArray;
+import static statistics.FileIO.writeString;
+import static statistics.GeneralTools.*;
+import static statistics.JackKnife.blockKnife;
+
 public class Main {
-
-    private static Double average(ArrayList<Double> table) {
-        return sum(table) / table.size();
-    }
-
-    private static Double sum(ArrayList<Double> table) {
-        Double sum = 0.;
-        for (int i = 0; i < table.size(); i++) {
-            sum += table.get(i);
-        }
-        return sum;
-    }
-
-    private static ArrayList<Double> squareTable(ArrayList<Double> table) {
-        ArrayList<Double> result = new ArrayList<>();
-        for (int i = 0; i < table.size(); i++) {
-            result.add(Math.pow(table.get(i),2));
-        }
-        return result;
-    }
-
-    private static Double sgm(ArrayList<Double> table) {
-        int N = table.size();
-        return Math.sqrt((N * sum(squareTable(table)) - Math.pow(sum(table),2)) / N / (N - 1));
-    }
-
-    private static ArrayList<Double> block(ArrayList<Double> table, int M) {
-        int K = table.size() / M;
-        ArrayList<Double> blocked = new ArrayList<>();
-        for (int i = 0; i < K; i++) {
-            ArrayList<Double> blockI = new ArrayList<Double>(table.subList(i*M, (i+1)*M));
-            blocked.add(average(blockI));
-        }
-        return blocked;
-    }
-
     public static void main(String[] args) {
 
-        ArrayList<Double> stAll1fs = new ArrayList<>();
-        ArrayList<Double> stAll100fs = new ArrayList<>();
+        ArrayList<Double> stAll1fs = readArray("nvt1fs.dat", 2);
+        ArrayList<Double> stAll100fs = readArray("nvt100fs.dat", 2);
+        ArrayList<Double> stDPPC = readArray("dppc.st", 2); //310K simulation, DPPC @ 100A^2 per lipid, output every 5ps, total 50ns
 
-        try (BufferedReader br = new BufferedReader(new FileReader(new File("nvt1fs.dat")))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                stAll1fs.add(Double.parseDouble(line.split("\\s+")[1]));
-            }
-        } catch (FileNotFoundException e) {
-            e.getMessage();
-        } catch (IOException e) {
-            e.getMessage();
-        }
+        ArrayList<Double> notBlocked1fs = block(stAll1fs, 1);
+        double sgm1fs = sgm(notBlocked1fs);
+        ArrayList<Double> notBlocked100fs = block(stAll100fs, 1);
+        double sgm100fs = sgm(notBlocked100fs);
+        ArrayList<Double> notBlocked5psDPPC = block(stDPPC, 1);
+        double sgmDPPC = sgm(notBlocked5psDPPC);
 
-        try (BufferedReader br = new BufferedReader(new FileReader(new File("nvt100fs.dat")))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                stAll100fs.add(Double.parseDouble(line.split("\\s+")[1]));
-            }
-        } catch (FileNotFoundException e) {
-            e.getMessage();
-        } catch (IOException e) {
-            e.getMessage();
-        }
-
-
-        //System.out.printf("%d, %.3f %.3f%n", stAll1fs.size(), average(stAll1fs), sgm(stAll1fs));
-        System.out.printf("%d 1fs: %.3f %.3f 100fs: %.3f %.3f%n", 1, average(stAll1fs), sgm(stAll1fs), average(stAll100fs), sgm(stAll100fs));
         int k = 1;
-        for (int i = k; i < 100; i += k) {
-            ArrayList<Double> blocked1fs = block(stAll1fs, i);
-            //System.out.printf("%d, %.3f %.3f%n", blocked.size(), average(blocked), sgm(blocked));
-            //System.out.printf("%d %.3f %.3f%n", i, average(blocked1fs), sgm(blocked1fs));
+        StringBuffer lines = new StringBuffer("");
+        for (int i = k; i < 1400; i += k) {
             ArrayList<Double> blocked100fs = block(stAll100fs, i);
-            //System.out.printf("%d 1fs: %.3f %.3f 100fs: %.3f %.3f%n", i, average(blocked1fs), sgm(blocked1fs), average(blocked100fs), sgm(blocked100fs));
-            //System.out.printf("%d 1fs: %.3f 100fs: %.3f%n", i, sgm(blocked1fs)*Math.sqrt(blocked1fs.size()), sgm(blocked100fs)*Math.sqrt(blocked100fs.size()));
-            System.out.printf("%d 1fs: %.3f 100fs: %.3f%n", i, sgm(blocked1fs)*Math.sqrt(i), sgm(blocked100fs)*Math.sqrt(i));
+            double stat_ineff = i * sgm(blocked100fs) / sgm100fs;
+            //System.out.printf("%8d %8.3f%n", i, stat_ineff);
+            lines.append(String.format("%8d %8.3f%n", i, stat_ineff));
         }
+        writeString("stat_ineff_100fs.dat", lines.toString());
+
+        k = 1000;
+        lines = new StringBuffer("");
+        for (int i = k; i < 140000; i += k) {
+            ArrayList<Double> blocked1fs = block(stAll1fs, i);
+            double stat_ineff = i * sgm(blocked1fs) / sgm1fs;
+            //System.out.printf("%8d %8.3f%n", i, stat_ineff);
+            lines.append(String.format("%8d %8.3f%n", i, stat_ineff));
+        }
+        writeString("stat_ineff_1fs.dat", lines.toString());
+
+        k = 10;
+        lines = new StringBuffer("");
+        for (int i = k; i < 5000; i += k) {
+            ArrayList<Double> blockedDPPC = block(stDPPC, i);
+            double stat_ineff = i * sgm(blockedDPPC) / sgmDPPC;
+            lines.append(String.format("%8d %8.3f%n", i, stat_ineff));
+        }
+        writeString("stat_ineff_DPPC.dat", lines.toString());
+
+        ArrayList<Double> jknDPPC = blockKnife(stDPPC);
+        System.out.printf("%8.3f %8.3f", average(jknDPPC), Math.sqrt(stDPPC.size() / (stDPPC.size() - 1)) * sgm(jknDPPC));
+        writeString("test", arrayListToString(jknDPPC));
     }
 }
