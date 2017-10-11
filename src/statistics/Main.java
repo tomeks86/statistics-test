@@ -25,9 +25,9 @@ public class Main {
 
         int k = 1;
         StringBuffer lines = new StringBuffer("");
-        for (int i = k; i < 1400; i += k) {
+        for (int i = k; i < 1000; i += k) {
             ArrayList<Double> blocked100fs = block(stAll100fs, i);
-            double stat_ineff = i * sgm(blocked100fs) / sgm100fs;
+            double stat_ineff = i * Math.pow(sgm(blocked100fs) / sgm100fs, 2);
             //System.out.printf("%8d %8.3f%n", i, stat_ineff);
             lines.append(String.format("%8d %8.3f%n", i, stat_ineff));
         }
@@ -53,7 +53,7 @@ public class Main {
         writeString("stat_ineff_DPPC.dat", lines.toString());
 
         ArrayList<Double> jknDPPC = blockKnife(stDPPC);
-        System.out.printf("%8.3f %8.3f", average(jknDPPC), Math.sqrt(stDPPC.size() / (stDPPC.size() - 1)) * sgm(jknDPPC));
+        System.out.printf("%8.3f %8.3f", average(jknDPPC), Math.sqrt((stDPPC.size() - 1) / stDPPC.size()) * sgm(jknDPPC));
         writeString("test", arrayListToString(jknDPPC));
     }
 }

@@ -25,7 +25,12 @@ public class GeneralTools {
 
     public static Double sgm(ArrayList<Double> table) {
         int N = table.size();
-        return Math.sqrt((N * sum(squareTable(table)) - Math.pow(sum(table), 2)) / N / (N - 1));
+        return Math.sqrt((sum(squareTable(table)) - Math.pow(sum(table), 2) / N) / N / (N - 1));
+    }
+
+    public static Double sgmJack(ArrayList<Double> list) {
+        Double M = (double) list.size();
+        return Math.sqrt((M - 1) / M * (sum(squareTable(list)) - Math.pow(sum(list), 2) / M));
     }
 
 }
